@@ -1,0 +1,59 @@
+:root {
+  --bg: #fafafa;
+  --card: #ffffff;
+  --text: #222;
+  --muted: #666;
+  --accent: #2563eb;
+  --border: #e5e7eb;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  background: var(--bg); color: var(--text);
+}
+header {
+  padding: 24px; text-align: center; background: #fff; border-bottom: 1px solid var(--border);
+}
+header h1 { margin: 0 0 8px; }
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px; margin: 16px auto; max-width: 1000px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+label { display:block; margin: 8px 0 4px; }
+input[type="text"], input[type="email"] {
+  width: 100%; max-width: 400px; padding: 10px; border-radius: 10px;
+  border: 1px solid var(--border); outline: none;
+}
+.uploader input[type="file"] { margin: 12px 0; }
+button {
+  background: var(--accent); color: #fff; border: none; padding: 10px 16px;
+  border-radius: 10px; cursor: pointer; margin-top: 8px;
+}
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+.hint { color: var(--muted); margin-top: 8px; }
+.status { margin-top: 8px; color: var(--muted); }
+
+.list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.list input { max-width: 100%; }
+.list ul { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow: auto; }
+.list li {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer;
+}
+.list li.active { border-color: var(--accent); background: #eff6ff; }
+.email { color: var(--muted); margin-left: 8px; font-size: 12px; }
+
+.grid {
+  display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px;
+  max-width: 1000px; margin: 0 auto 24px;
+}
+.preview {
+  width: 100%; height: 520px; border: 1px solid var(--border); border-radius: 12px; background: #fff;
+}
+.emailBox { margin-top: 16px; }
+.tip { margin-top: 16px; color: var(--muted); font-size: 14px; }
+footer { text-align: center; padding: 16px; color: var(--muted); }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}

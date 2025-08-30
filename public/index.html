@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="certApp">
+<head>
+  <meta charset="UTF-8" />
+  <title>Certificate Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- AngularJS 1.x (CDN) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body ng-controller="MainCtrl">
+
+  <header>
+    <h1>🎓 Certificate Generator</h1>
+    <p>Upload CSV → Preview → Download → (Optional) Email</p>
+  </header>
+
+  <section class="card">
+    <h2>1 Upload CSV of Participants</h2>
+    <form ng-submit="uploadCSV()">
+      <label>Event Name:</label>
+      <input type="text" ng-model="eventName" placeholder="e.g., Tech Fest 2025" />
+      <div class="uploader">
+        <input type="file" id="csvFile" accept=".csv" onchange="angular.element(this).scope().onFileChange(this.files)" />
+      </div>
+      <button type="submit" ng-disabled="!file">Upload CSV</button>
+      <p class="hint">CSV headers: <code>name,email</code> (email optional)</p>
+    </form>
+    <p class="status" ng-if="status">{{status}}</p>
+  </section>
+
+  <section class="card" ng-if="participants.length">
+    <h2>2 Select Participant</h2>
+    <div class="list">
+      <input type="text" ng-model="query" placeholder="Search name..." />
+      <ul>
+        <li ng-repeat="p in participants | filter: { name: query } track by $index"
+            ng-class="{active: selected && selected.name === p.name}"
+            ng-click="select(p)">
+          <strong>{{p.name}}</strong>
+          <span class="email" ng-if="p.email">&lt;{{p.email}}&gt;</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="grid" ng-if="selected">
+    <div class="card">
+      <h2>3 Preview</h2>
+      <iframe class="preview" ng-src="{{previewUrl()}}"></iframe>
+    </div>
+    <div class="card">
+      <h2>4 Actions</h2>
+      <button ng-click="download()">Download PDF</button>
+
+      <div class="emailBox">
+        <label>Email (optional):</label>
+        <input type="email" ng-model="emailToSend" placeholder="person@example.com" />
+        <button ng-click="sendEmail()" ng-disabled="!emailToSend">Send Email</button>
+        <p class="status" ng-if="emailStatus">{{emailStatus}}</p>
+      </div>
+
+      <div class="tip">
+        Tip: Edit event name above and re-upload CSV to update the event on the certificate.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <small>Built with AngularJS + Node/Express + PDFKit</small>
+  </footer>
+
+<script>
+angular.module('certApp', [])
+.controller('MainCtrl', ['$scope', '$http', '$sce', function($scope, $http, $sce) {
+  $scope.file = null;
+  $scope.status = '';
+  $scope.participants = [];
+  $scope.selected = null;
+  $scope.eventName = '';
+  $scope.emailToSend = '';
+  $scope.emailStatus = '';
+
+  $scope.onFileChange = function(files) {
+    $scope.$apply(function() {
+      $scope.file = files[0] || null;
+    });
+  };
+
+  $scope.uploadCSV = function() {
+    if (!$scope.file) { $scope.status = 'Please choose a CSV file.'; return; }
+    const form = new FormData();
+    form.append('file', $scope.file);
+    if ($scope.eventName) form.append('event', $scope.eventName);
+
+    $scope.status = 'Uploading...';
+    $http.post('/api/upload', form, { headers: { 'Content-Type': undefined }})
+      .then(res => {
+        $scope.status = `Uploaded ${res.data.count} participants for event: ${res.data.event}`;
+        return $http.get('/api/names');
+      })
+      .then(res => {
+        $scope.participants = res.data.participants || [];
+        $scope.selected = $scope.participants[0] || null;
+      })
+      .catch(err => {
+        $scope.status = 'Upload failed: ' + (err.data?.error || err.statusText || 'Unknown error');
+      });
+  };
+
+  $scope.select = function(p) {
+    $scope.selected = p;
+    $scope.emailToSend = p.email || '';
+    $scope.emailStatus = '';
+  };
+
+  $scope.previewUrl = function() {
+    if (!$scope.selected) return '';
+    const name = encodeURIComponent($scope.selected.name);
+    const ev = encodeURIComponent($scope.eventName || '');
+    return $sce.trustAsResourceUrl(`/api/preview?name=${name}${ev ? '&event='+ev : ''}`);
+  };
+
+  $scope.download = function() {
+    if (!$scope.selected) return;
+    const name = encodeURIComponent($scope.selected.name);
+    const ev = encodeURIComponent($scope.eventName || '');
+    const url = `/api/generate?name=${name}${ev ? '&event='+ev : ''}`;
+    // Trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.click();
+  };
+
+  $scope.sendEmail = function() {
+    if (!$scope.selected || !$scope.emailToSend) return;
+    $scope.emailStatus = 'Sending...';
+    $http.post('/api/email', {
+      name: $scope.selected.name,
+      email: $scope.emailToSend,
+      event: $scope.eventName || undefined
+    }).then(() => {
+      $scope.emailStatus = 'Email sent ✅';
+    }).catch(err => {
+      $scope.emailStatus = 'Email failed: ' + (err.data?.error || err.statusText || 'Unknown error');
+    });
+  };
+}]);
+</script>
+</body>
+</html>
